@@ -39,12 +39,13 @@ func getConfig() {
 }
 
 var (
-	config      Config
-	mu          sync.Mutex
-	wg          sync.WaitGroup
-	sem         chan struct{}
-	httpClient  *http.Client
-	failRecords []string // 存储失败记录
+	config           Config
+	mu               sync.Mutex
+	wg               sync.WaitGroup
+	sem              chan struct{}
+	httpClient       *http.Client
+	failRecords      []string // 存储失败记录
+	lastRoundEndTime time.Time
 )
 
 type CustomTransport struct {
@@ -217,6 +218,17 @@ func downloadImagesFromFile(filename string) {
 		}(url, path)
 	}
 	wg.Wait()
+
+	// 记录当前时间作为这一轮的完成时间
+	currentRoundEndTime := time.Now()
+	fmt.Printf("本轮下载完成，当前时间：%v\n", currentRoundEndTime)
+	// 检查与上一轮的时间间隔
+	if !lastRoundEndTime.IsZero() && currentRoundEndTime.Sub(lastRoundEndTime) < 5*time.Minute {
+		fmt.Printf("与上一轮的时间间隔不超过5分钟，退出程序。\n")
+		os.Exit(0)
+	}
+	// 更新上一轮的完成时间为当前轮的完成时间
+	lastRoundEndTime = currentRoundEndTime
 }
 func getStartAndEndIndex() (int, int) {
 	scanner := bufio.NewScanner(os.Stdin)
