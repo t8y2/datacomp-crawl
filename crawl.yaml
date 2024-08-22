@@ -13,3 +13,4 @@ log_path: /public/dataset/datacomp-temp/logs/
 timeout: 10
 max_concurrent: 300
 proxy_url: http://127.0.0.1:6222
+use_proxy: false

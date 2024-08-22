@@ -24,6 +24,7 @@ type Config struct {
 	FailPath      string `yaml:"fail_path" mapstructure:"fail_path"`
 	StoragePath   string `yaml:"storage_path" mapstructure:"storage_path"`
 	LogPath       string `yaml:"log_path" mapstructure:"log_path"`
+	UseProxy      bool   `yaml:"use_proxy" mapstructure:"use_proxy"`
 }
 
 func getConfig() {
@@ -69,20 +70,39 @@ func init() {
 		fmt.Printf("无法解析代理URL: %s - %v\n", config.ProxyURL, err)
 		os.Exit(1)
 	}
-	// 初始化http.Client
-	httpClient = &http.Client{
-		Transport: &CustomTransport{
-			Transport: &http.Transport{
-				Proxy: http.ProxyURL(proxy),
-				//MaxIdleConnsPerHost:   10,
-				MaxIdleConns:          1000,
-				IdleConnTimeout:       20 * time.Second,
-				TLSHandshakeTimeout:   5 * time.Second,
-				ExpectContinueTimeout: 1 * time.Second,
+	if config.UseProxy {
+		fmt.Println("使用代理:", config.ProxyURL)
+		// 初始化http.Client
+		httpClient = &http.Client{
+			Transport: &CustomTransport{
+				Transport: &http.Transport{
+					Proxy: http.ProxyURL(proxy),
+					//MaxIdleConnsPerHost:   10,
+					MaxIdleConns:          1000,
+					IdleConnTimeout:       20 * time.Second,
+					TLSHandshakeTimeout:   5 * time.Second,
+					ExpectContinueTimeout: 1 * time.Second,
+				},
 			},
-		},
-		Timeout: time.Duration(config.Timeout) * time.Second,
+			Timeout: time.Duration(config.Timeout) * time.Second,
+		}
+	} else {
+		fmt.Println("不使用代理")
+		// 初始化http.Client
+		httpClient = &http.Client{
+			Transport: &CustomTransport{
+				Transport: &http.Transport{
+					//MaxIdleConnsPerHost:   10,
+					MaxIdleConns:          1000,
+					IdleConnTimeout:       20 * time.Second,
+					TLSHandshakeTimeout:   5 * time.Second,
+					ExpectContinueTimeout: 1 * time.Second,
+				},
+			},
+			Timeout: time.Duration(config.Timeout) * time.Second,
+		}
 	}
+
 	// 初始化信号量
 	sem = make(chan struct{}, config.MaxConcurrent)
 }
